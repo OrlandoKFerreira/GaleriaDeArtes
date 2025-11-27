@@ -118,6 +118,13 @@ footer {
   padding: 10px 0;
   border-top: 1px solid #ccc;
 }
+.btn-favorito {
+  color: #ccc !important;
+}
+
+.btn-favorito.favorito {
+  color: gold !important;
+}
 
 /*RESPONSIVIDADE*/
 @media (max-width: 768px) {

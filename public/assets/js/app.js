@@ -30,7 +30,6 @@ function exigirLogin() {
 
   const usuario = obterUsuarioLogado();
   if (!usuario) {
-    // não está logado, manda para o login
     window.location.href = "login.html";
   }
 }
@@ -54,7 +53,6 @@ function initLogin() {
     }
 
     try {
-      // Busca usuário com esse email e senha no JSON Server
       const resp = await fetch(
         `${API_BASE}/usuarios?email=${encodeURIComponent(
           email
@@ -74,20 +72,43 @@ function initLogin() {
 
       const usuario = usuarios[0];
 
-      // Salva apenas dados básicos (sem senha) na sessão
       salvarUsuarioLogado({
         id: usuario.id,
         nome: usuario.nome,
         email: usuario.email,
+        admin: usuario.admin, // já deixa salvo para permissões depois
       });
 
-      // Redireciona para a home
       window.location.href = "index.html";
     } catch (error) {
       console.error("Erro no login:", error);
       alert("Erro ao tentar fazer login. Tente novamente mais tarde.");
     }
   });
+}
+
+// =========================
+// FAVORITOS (LOCALSTORAGE)
+// =========================
+function getFavoritos() {
+  return JSON.parse(localStorage.getItem("favoritos") || "[]");
+}
+
+function salvarFavoritos(lista) {
+  localStorage.setItem("favoritos", JSON.stringify(lista));
+}
+
+function alternarFavorito(id) {
+  let favs = getFavoritos();
+  id = Number(id);
+
+  if (favs.includes(id)) {
+    favs = favs.filter((x) => x !== id);
+  } else {
+    favs.push(id);
+  }
+
+  salvarFavoritos(favs);
 }
 
 // =========================
@@ -98,6 +119,47 @@ function carregarHome() {
   const listaEl = document.getElementById("lista-artistas");
 
   if (!carouselEl || !listaEl) return;
+
+  // Função auxiliar para renderizar lista (usa favoritos)
+  function renderizarLista(arrayArtistas) {
+    const favoritos = getFavoritos();
+
+    listaEl.innerHTML = arrayArtistas
+      .map((artista) => {
+        const isFavorito = favoritos.includes(artista.id);
+        const classeFavorito = isFavorito ? "favorito" : "";
+
+        return `
+        <div class="col-12 col-sm-6 col-md-4 mb-4">
+          <div class="card h-100 shadow-sm">
+            <img src="${artista.imagem_principal}" class="card-img-top" alt="${artista.nome}">
+            <div class="card-body d-flex flex-column">
+              <h5 class="card-title d-flex justify-content-between align-items-center">
+                ${artista.nome}
+                <button 
+                  class="btn-favorito ${classeFavorito}"
+                  data-id="${artista.id}"
+                  style="background: none; border: none; font-size: 22px;"
+                  title="Favoritar"
+                >
+                  ★
+                </button>
+              </h5>
+              <p class="card-text flex-grow-1">${artista.descricao}</p>
+              <div class="d-flex flex-wrap gap-2 mt-2">
+                <a href="detalhes.html?id=${artista.id}" class="btn btn-primary btn-sm">Ver detalhes</a>
+                <a href="form_artista.html?id=${artista.id}" class="btn btn-warning btn-sm">Editar</a>
+                <button class="btn btn-danger btn-sm btn-excluir-artista" data-id="${artista.id}">
+                  Excluir
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      })
+      .join("");
+  }
 
   fetch(`${API_BASE}/artistas`)
     .then((response) => response.json())
@@ -124,6 +186,7 @@ function carregarHome() {
         .slice()
         .sort((a, b) => a.nome.localeCompare(b.nome));
 
+      // Carrossel
       if (!destaques.length) {
         carouselEl.innerHTML = `
           <div class="text-center p-5 text-muted">
@@ -151,28 +214,30 @@ function carregarHome() {
           .join("");
       }
 
-      listaEl.innerHTML = todos
-        .map(
-          (artista) => `
-          <div class="col-12 col-sm-6 col-md-4 mb-4">
-            <div class="card h-100 shadow-sm">
-              <img src="${artista.imagem_principal}" class="card-img-top" alt="${artista.nome}">
-              <div class="card-body d-flex flex-column">
-                <h5 class="card-title">${artista.nome}</h5>
-                <p class="card-text flex-grow-1">${artista.descricao}</p>
-                <div class="d-flex flex-wrap gap-2 mt-2">
-                  <a href="detalhes.html?id=${artista.id}" class="btn btn-primary btn-sm">Ver detalhes</a>
-                  <a href="form_artista.html?id=${artista.id}" class="btn btn-warning btn-sm">Editar</a>
-                  <button class="btn btn-danger btn-sm btn-excluir-artista" data-id="${artista.id}">
-                    Excluir
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        `
-        )
-        .join("");
+      // Lista inicial
+      renderizarLista(todos);
+
+      // PESQUISA
+      const campoPesquisa = document.getElementById("campo-pesquisa");
+      if (campoPesquisa) {
+        campoPesquisa.addEventListener("input", () => {
+          const termo = campoPesquisa.value.toLowerCase();
+          const filtrados = todos.filter((artista) =>
+            artista.nome.toLowerCase().includes(termo)
+          );
+          renderizarLista(filtrados);
+        });
+      }
+
+      // FILTRO FAVORITOS (se você tiver um botão com esse id)
+      const btnFiltro = document.getElementById("btn-filtrar-favoritos");
+      if (btnFiltro) {
+        btnFiltro.addEventListener("click", () => {
+          const favIds = getFavoritos();
+          const filtrados = todos.filter((a) => favIds.includes(a.id));
+          renderizarLista(filtrados);
+        });
+      }
     })
     .catch((error) => {
       console.error("Erro ao carregar os dados dos artistas:", error);
@@ -496,10 +561,15 @@ function getQueryParam(nome) {
 document.addEventListener("DOMContentLoaded", () => {
   const pageId = document.body.id;
 
-  // Protege todas as páginas, menos o login
   exigirLogin();
+  // Mostrar nome do usuário logado no header
+  const usuarioLogado = obterUsuarioLogado();
+  const nomeUsuarioEl = document.getElementById("nome-usuario");
 
-  // Botão de logout (se existir no header)
+  if (usuarioLogado && nomeUsuarioEl) {
+    nomeUsuarioEl.textContent = usuarioLogado.nome;
+  }
+
   const btnLogout = document.getElementById("btn-logout");
   if (btnLogout) {
     btnLogout.addEventListener("click", (e) => {
@@ -520,16 +590,30 @@ document.addEventListener("DOMContentLoaded", () => {
     const listaEl = document.getElementById("lista-artistas");
     if (listaEl) {
       listaEl.addEventListener("click", (e) => {
+        // EXCLUIR
         const btn = e.target.closest(".btn-excluir-artista");
-        if (!btn) return;
-        const id = btn.dataset.id;
-        const ok = confirm("Tem certeza que deseja excluir este artista?");
-        if (!ok) return;
-        fetch(`${API_BASE}/artistas/${id}`, {
-          method: "DELETE",
-        })
-          .then(() => carregarHome())
-          .catch((error) => console.error("Erro ao excluir artista:", error));
+        if (btn) {
+          const id = btn.dataset.id;
+          const ok = confirm("Tem certeza que deseja excluir este artista?");
+          if (!ok) return;
+          fetch(`${API_BASE}/artistas/${id}`, {
+            method: "DELETE",
+          })
+            .then(() => carregarHome())
+            .catch((error) => console.error("Erro ao excluir artista:", error));
+          return;
+        }
+
+        // FAVORITO
+        const favBtn = e.target.closest(".btn-favorito");
+        if (favBtn) {
+          const id = favBtn.dataset.id;
+          alternarFavorito(id);
+          // não precisa nem recarregar a página,
+          // o CSS usa a classe "favorito"
+          favBtn.classList.toggle("favorito");
+          return;
+        }
       });
     }
   }
