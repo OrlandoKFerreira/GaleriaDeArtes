@@ -52,6 +52,14 @@
       "id": "2",
       "nome": "Maria Oliveira",
       "email": "maria@email.com"
+    },
+    {
+      "id": "6d0f36db-668c-479a-8d24-900f36f058d2",
+      "nome": "Orlando",
+      "email": "orlando.ferreira1614@gmail.com",
+      "login": "Orlando",
+      "senha": "Orlando123",
+      "admin": false
     }
   ]
 }

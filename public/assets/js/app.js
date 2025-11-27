@@ -26,7 +26,8 @@ function limparUsuarioLogado() {
 
 function exigirLogin() {
   const pageId = document.body.id;
-  if (pageId === "login") return; // página de login é livre
+  // páginas livres: login e cadastro
+  if (pageId === "login" || pageId === "cadastro") return;
 
   const usuario = obterUsuarioLogado();
   if (!usuario) {
@@ -76,13 +77,72 @@ function initLogin() {
         id: usuario.id,
         nome: usuario.nome,
         email: usuario.email,
-        admin: usuario.admin, // já deixa salvo para permissões depois
+        admin: usuario.admin, // vem do JSON (true ou false)
       });
 
       window.location.href = "index.html";
     } catch (error) {
       console.error("Erro no login:", error);
       alert("Erro ao tentar fazer login. Tente novamente mais tarde.");
+    }
+  });
+}
+function initCadastro() {
+  const form = document.getElementById("form-cadastro");
+  if (!form) return;
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const nome = document.getElementById("nome").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const login = document.getElementById("login").value.trim();
+    const senha = document.getElementById("senha").value.trim();
+
+    if (!nome || !email || !login || !senha) {
+      alert("Preencha todos os campos.");
+      return;
+    }
+
+    try {
+      // Verifica se já existe usuário com esse e-mail
+      const respCheck = await fetch(
+        `${API_BASE}/usuarios?email=${encodeURIComponent(email)}`
+      );
+      const existentes = await respCheck.json();
+
+      if (existentes.length) {
+        alert("Já existe um usuário cadastrado com esse e-mail.");
+        return;
+      }
+
+      const novoUsuario = {
+        // se crypto.randomUUID existir, usa; senão usa timestamp
+        id: window.crypto?.randomUUID
+          ? crypto.randomUUID()
+          : String(Date.now()),
+        nome,
+        email,
+        login,
+        senha,
+        admin: false, // cadastros comuns não são admin
+      };
+
+      const resp = await fetch(`${API_BASE}/usuarios`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(novoUsuario),
+      });
+
+      if (!resp.ok) {
+        throw new Error("Erro ao cadastrar usuário");
+      }
+
+      alert("Cadastro realizado com sucesso! Agora você já pode fazer login.");
+      window.location.href = "login.html";
+    } catch (error) {
+      console.error("Erro no cadastro:", error);
+      alert("Erro ao cadastrar usuário. Tente novamente mais tarde.");
     }
   });
 }
@@ -562,10 +622,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const pageId = document.body.id;
 
   exigirLogin();
-  // Mostrar nome do usuário logado no header
+
+  // Mostrar nome do usuário logado no header (se existir)
   const usuarioLogado = obterUsuarioLogado();
   const nomeUsuarioEl = document.getElementById("nome-usuario");
-
   if (usuarioLogado && nomeUsuarioEl) {
     nomeUsuarioEl.textContent = usuarioLogado.nome;
   }
@@ -581,6 +641,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (pageId === "login") {
     initLogin();
+    return;
+  }
+
+  if (pageId === "cadastro") {
+    initCadastro();
     return;
   }
 
