@@ -1,10 +1,105 @@
+// =========================
+// CONFIGURAÇÃO BÁSICA
+// =========================
+const API_BASE = "http://localhost:3000";
+
+// =========================
+// FUNÇÕES DE AUTENTICAÇÃO
+// =========================
+function salvarUsuarioLogado(usuario) {
+  localStorage.setItem("usuarioLogado", JSON.stringify(usuario));
+}
+
+function obterUsuarioLogado() {
+  const dados = localStorage.getItem("usuarioLogado");
+  if (!dados) return null;
+  try {
+    return JSON.parse(dados);
+  } catch (e) {
+    return null;
+  }
+}
+
+function limparUsuarioLogado() {
+  localStorage.removeItem("usuarioLogado");
+}
+
+function exigirLogin() {
+  const pageId = document.body.id;
+  if (pageId === "login") return; // página de login é livre
+
+  const usuario = obterUsuarioLogado();
+  if (!usuario) {
+    // não está logado, manda para o login
+    window.location.href = "login.html";
+  }
+}
+
+function initLogin() {
+  const form = document.getElementById("form-login");
+  if (!form) return;
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const emailEl = document.getElementById("email");
+    const senhaEl = document.getElementById("senha");
+
+    const email = emailEl.value.trim();
+    const senha = senhaEl.value.trim();
+
+    if (!email || !senha) {
+      alert("Preencha e-mail e senha.");
+      return;
+    }
+
+    try {
+      // Busca usuário com esse email e senha no JSON Server
+      const resp = await fetch(
+        `${API_BASE}/usuarios?email=${encodeURIComponent(
+          email
+        )}&senha=${encodeURIComponent(senha)}`
+      );
+
+      if (!resp.ok) {
+        throw new Error("Erro ao consultar usuários");
+      }
+
+      const usuarios = await resp.json();
+
+      if (!usuarios.length) {
+        alert("Usuário ou senha inválidos.");
+        return;
+      }
+
+      const usuario = usuarios[0];
+
+      // Salva apenas dados básicos (sem senha) na sessão
+      salvarUsuarioLogado({
+        id: usuario.id,
+        nome: usuario.nome,
+        email: usuario.email,
+      });
+
+      // Redireciona para a home
+      window.location.href = "index.html";
+    } catch (error) {
+      console.error("Erro no login:", error);
+      alert("Erro ao tentar fazer login. Tente novamente mais tarde.");
+    }
+  });
+}
+
+// =========================
+// FUNÇÕES DA HOME
+// =========================
 function carregarHome() {
   const carouselEl = document.getElementById("carousel-destaques");
   const listaEl = document.getElementById("lista-artistas");
 
   if (!carouselEl || !listaEl) return;
 
-  fetch("http://localhost:3000/artistas")
+  fetch(`${API_BASE}/artistas`)
     .then((response) => response.json())
     .then((artistas) => {
       if (!artistas.length) {
@@ -89,6 +184,9 @@ function carregarHome() {
     });
 }
 
+// =========================
+// DETALHES DO ARTISTA
+// =========================
 function carregarDetalhes() {
   const container = document.getElementById("conteudo-artista");
   if (!container) return;
@@ -99,7 +197,7 @@ function carregarDetalhes() {
     return;
   }
 
-  fetch("http://localhost:3000/artistas/" + id)
+  fetch(`${API_BASE}/artistas/${id}`)
     .then((response) => {
       if (!response.ok) throw new Error("404");
       return response.json();
@@ -115,12 +213,12 @@ function carregarDetalhes() {
             <p class="mb-1"><strong>País:</strong> ${artista.pais || "-"}</p>
             <p class="mb-3">${artista.biografia || ""}</p>
             <a href="index.html" class="btn btn-outline-secondary btn-sm">⬅ Voltar</a>
-<a href="form_artista.html?id=${
-        artista.id
-      }" class="btn btn-warning btn-sm ms-2">Editar artista</a>
-<a href="form_obra.html?artistaId=${
-        artista.id
-      }" class="btn btn-success btn-sm ms-2">Adicionar obra</a>
+            <a href="form_artista.html?id=${
+              artista.id
+            }" class="btn btn-warning btn-sm ms-2">Editar artista</a>
+            <a href="form_obra.html?artistaId=${
+              artista.id
+            }" class="btn btn-success btn-sm ms-2">Adicionar obra</a>
           </div>
         </div>
 
@@ -154,6 +252,9 @@ function carregarDetalhes() {
     });
 }
 
+// =========================
+// FORMULÁRIO DE ARTISTA
+// =========================
 function initFormArtista() {
   const form = document.getElementById("form-artista-form");
   if (!form) return;
@@ -173,7 +274,7 @@ function initFormArtista() {
   let obrasAtual = [];
 
   if (id) {
-    fetch("http://localhost:3000/artistas/" + id)
+    fetch(`${API_BASE}/artistas/${id}`)
       .then((response) => response.json())
       .then((artista) => {
         idEl.value = artista.id;
@@ -210,7 +311,7 @@ function initFormArtista() {
     };
 
     if (id) {
-      fetch("http://localhost:3000/artistas/" + id, {
+      fetch(`${API_BASE}/artistas/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(artista),
@@ -222,7 +323,7 @@ function initFormArtista() {
           console.error("Erro ao atualizar artista:", error);
         });
     } else {
-      fetch("http://localhost:3000/artistas", {
+      fetch(`${API_BASE}/artistas`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(artista),
@@ -236,6 +337,10 @@ function initFormArtista() {
     }
   });
 }
+
+// =========================
+// FORMULÁRIO DE OBRA
+// =========================
 function proximoIdObra(obras) {
   if (!obras || !obras.length) return 1;
   const ids = obras.map((o) => o.id || 0);
@@ -273,7 +378,7 @@ function initFormObra() {
     return;
   }
 
-  fetch("http://localhost:3000/artistas/" + artistaId)
+  fetch(`${API_BASE}/artistas/${artistaId}`)
     .then((response) => response.json())
     .then((artista) => {
       artistaAtual = artista;
@@ -327,7 +432,7 @@ function initFormObra() {
       obras,
     };
 
-    fetch("http://localhost:3000/artistas/" + artistaId, {
+    fetch(`${API_BASE}/artistas/${artistaId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(artistaAtualizado),
@@ -341,42 +446,14 @@ function initFormObra() {
   });
 }
 
-function getQueryParam(nome) {
-  const params = new URLSearchParams(window.location.search);
-  return params.get(nome);
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  const pageId = document.body.id;
-  if (pageId === "home") {
-    carregarHome();
-
-    const listaEl = document.getElementById("lista-artistas");
-    if (listaEl) {
-      listaEl.addEventListener("click", (e) => {
-        const btn = e.target.closest(".btn-excluir-artista");
-        if (!btn) return;
-        const id = btn.dataset.id;
-        const ok = confirm("Tem certeza que deseja excluir este artista?");
-        if (!ok) return;
-        fetch("http://localhost:3000/artistas/" + id, {
-          method: "DELETE",
-        })
-          .then(() => carregarHome())
-          .catch((error) => console.error("Erro ao excluir artista:", error));
-      });
-    }
-  }
-  if (pageId === "detalhes") carregarDetalhes();
-  if (pageId === "form-artista") initFormArtista();
-  if (pageId === "form-obra") initFormObra();
-  if (pageId === "grafico") carregarGraficoObras();
-});
+// =========================
+// GRÁFICO COM CHART.JS
+// =========================
 function carregarGraficoObras() {
   const ctx = document.getElementById("chartObras");
   if (!ctx) return;
 
-  fetch("http://localhost:3000/artistas")
+  fetch(`${API_BASE}/artistas`)
     .then((res) => res.json())
     .then((artistas) => {
       const labels = artistas.map((a) => a.nome);
@@ -404,3 +481,61 @@ function carregarGraficoObras() {
       });
     });
 }
+
+// =========================
+// UTILITÁRIO DE QUERYSTRING
+// =========================
+function getQueryParam(nome) {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(nome);
+}
+
+// =========================
+// INICIALIZAÇÃO GERAL
+// =========================
+document.addEventListener("DOMContentLoaded", () => {
+  const pageId = document.body.id;
+
+  // Protege todas as páginas, menos o login
+  exigirLogin();
+
+  // Botão de logout (se existir no header)
+  const btnLogout = document.getElementById("btn-logout");
+  if (btnLogout) {
+    btnLogout.addEventListener("click", (e) => {
+      e.preventDefault();
+      limparUsuarioLogado();
+      window.location.href = "login.html";
+    });
+  }
+
+  if (pageId === "login") {
+    initLogin();
+    return;
+  }
+
+  if (pageId === "home") {
+    carregarHome();
+
+    const listaEl = document.getElementById("lista-artistas");
+    if (listaEl) {
+      listaEl.addEventListener("click", (e) => {
+        const btn = e.target.closest(".btn-excluir-artista");
+        if (!btn) return;
+        const id = btn.dataset.id;
+        const ok = confirm("Tem certeza que deseja excluir este artista?");
+        if (!ok) return;
+        fetch(`${API_BASE}/artistas/${id}`, {
+          method: "DELETE",
+        })
+          .then(() => carregarHome())
+          .catch((error) => console.error("Erro ao excluir artista:", error));
+      });
+    }
+  }
+
+  if (pageId === "detalhes") carregarDetalhes();
+  if (pageId === "form-artista") initFormArtista();
+  if (pageId === "form-obra") initFormObra();
+  if (pageId === "grafico") carregarGraficoObras();
+});
