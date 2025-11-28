@@ -159,8 +159,13 @@ function salvarFavoritos(lista) {
 }
 
 function alternarFavorito(id) {
-  let favs = getFavoritos();
-  id = Number(id);
+  // sempre trabalhar com string, independente se o artista.id é número ou string
+  id = String(id);
+
+  let favs = getFavoritos(); // pode vir vazio []
+
+  // garante que é um array de strings
+  favs = favs.map((x) => String(x));
 
   if (favs.includes(id)) {
     favs = favs.filter((x) => x !== id);
@@ -186,7 +191,9 @@ function carregarHome() {
 
     listaEl.innerHTML = arrayArtistas
       .map((artista) => {
-        const isFavorito = favoritos.includes(artista.id);
+        const favStrings = favoritos.map((x) => String(x));
+        const isFavorito = favStrings.includes(String(artista.id));
+
         const classeFavorito = isFavorito ? "favorito" : "";
 
         return `
@@ -304,6 +311,79 @@ function carregarHome() {
       carouselEl.innerHTML = `
         <div class="text-center p-5">
           Erro ao carregar dados. Tente novamente mais tarde.
+        </div>
+      `;
+    });
+}
+function carregarFavoritos() {
+  const listaEl = document.getElementById("lista-favoritos");
+  if (!listaEl) return;
+
+  const favIds = getFavoritos();
+
+  if (!favIds.length) {
+    listaEl.innerHTML = `
+      <div class="col-12">
+        <div class="alert alert-info text-center">
+          Você ainda não marcou nenhum artista como favorito.
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  fetch(`${API_BASE}/artistas`)
+    .then((res) => res.json())
+    .then((artistas) => {
+      const favoritos = artistas.filter((a) => favIds.includes(a.id));
+
+      if (!favoritos.length) {
+        listaEl.innerHTML = `
+          <div class="col-12">
+            <div class="alert alert-info text-center">
+              Nenhum dos artistas cadastrados corresponde aos seus favoritos.
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      listaEl.innerHTML = favoritos
+        .map((artista) => {
+          return `
+          <div class="col-12 col-sm-6 col-md-4 mb-4">
+            <div class="card h-100 shadow-sm">
+              <img src="${artista.imagem_principal}" class="card-img-top" alt="${artista.nome}">
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title d-flex justify-content-between align-items-center">
+                  ${artista.nome}
+                  <button 
+                    class="btn-favorito favorito"
+                    data-id="${artista.id}"
+                    style="background: none; border: none; font-size: 22px;"
+                    title="Remover dos favoritos"
+                  >
+                    ★
+                  </button>
+                </h5>
+                <p class="card-text flex-grow-1">${artista.descricao}</p>
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                  <a href="detalhes.html?id=${artista.id}" class="btn btn-primary btn-sm">Ver detalhes</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        })
+        .join("");
+    })
+    .catch((error) => {
+      console.error("Erro ao carregar favoritos:", error);
+      listaEl.innerHTML = `
+        <div class="col-12">
+          <div class="alert alert-warning text-center">
+            Erro ao carregar favoritos. Tente novamente mais tarde.
+          </div>
         </div>
       `;
     });
@@ -621,6 +701,7 @@ function getQueryParam(nome) {
 document.addEventListener("DOMContentLoaded", () => {
   const pageId = document.body.id;
 
+  // protege páginas (menos login/cadastro se você já tiver)
   exigirLogin();
 
   // Mostrar nome do usuário logado no header (se existir)
@@ -630,6 +711,7 @@ document.addEventListener("DOMContentLoaded", () => {
     nomeUsuarioEl.textContent = usuarioLogado.nome;
   }
 
+  // Botão de logout (se existir na página)
   const btnLogout = document.getElementById("btn-logout");
   if (btnLogout) {
     btnLogout.addEventListener("click", (e) => {
@@ -639,16 +721,19 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // LOGIN
   if (pageId === "login") {
     initLogin();
     return;
   }
 
+  // (se tiver CADASTRO)
   if (pageId === "cadastro") {
-    initCadastro();
+    initCadastro(); // opcional, se você já criou essa função
     return;
   }
 
+  // HOME  ============================
   if (pageId === "home") {
     carregarHome();
 
@@ -661,6 +746,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const id = btn.dataset.id;
           const ok = confirm("Tem certeza que deseja excluir este artista?");
           if (!ok) return;
+
           fetch(`${API_BASE}/artistas/${id}`, {
             method: "DELETE",
           })
@@ -669,20 +755,58 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
-        // FAVORITO
+        // FAVORITO (estrela)
         const favBtn = e.target.closest(".btn-favorito");
         if (favBtn) {
           const id = favBtn.dataset.id;
           alternarFavorito(id);
-          // não precisa nem recarregar a página,
-          // o CSS usa a classe "favorito"
+          // Só alterna a classe, o CSS cuida da cor
           favBtn.classList.toggle("favorito");
           return;
         }
       });
     }
   }
+  if (pageId === "favoritos") {
+    carregarFavoritos();
 
+    const listaFavEl = document.getElementById("lista-favoritos");
+    if (listaFavEl) {
+      listaFavEl.addEventListener("click", (e) => {
+        const favBtn = e.target.closest(".btn-favorito");
+        if (favBtn) {
+          const id = favBtn.dataset.id;
+          alternarFavorito(id);
+          // recarrega a lista, porque o artista deve sumir quando tirar dos favoritos
+          carregarFavoritos();
+          return;
+        }
+      });
+    }
+  }
+
+  // FAVORITOS  =======================
+  if (pageId === "favoritos") {
+    carregarFavoritos();
+
+    const listaFavEl = document.getElementById("lista-favoritos");
+    if (listaFavEl) {
+      listaFavEl.addEventListener("click", (e) => {
+        // Clique na estrela na página de favoritos
+        const favBtn = e.target.closest(".btn-favorito");
+        if (favBtn) {
+          const id = favBtn.dataset.id;
+          alternarFavorito(id);
+          // Aqui faz sentido recarregar a lista,
+          // porque o artista deve sumir dos favoritos
+          carregarFavoritos();
+          return;
+        }
+      });
+    }
+  }
+
+  // OUTRAS PÁGINAS ===================
   if (pageId === "detalhes") carregarDetalhes();
   if (pageId === "form-artista") initFormArtista();
   if (pageId === "form-obra") initFormObra();

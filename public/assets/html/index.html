@@ -11,7 +11,6 @@
     />
     <link rel="stylesheet" href="/public/assets/css/style.css" />
 
-    <!-- CORRIGIDO: barra normal, não js\app.js -->
     <script src="/public/assets/js/app.js" defer></script>
   </head>
   <body id="home" class="bg-light">
@@ -23,14 +22,12 @@
             <h1 class="mb-0">Galeria de Arte</h1>
             <p class="mb-0">Explore os artistas</p>
           </div>
-
           <!-- BOTÃO DO GRÁFICO -->
           <div class="col-12 col-md-4 text-center mb-3 mb-md-0">
             <a href="grafico.html" class="btn btn-warning">
               Ver gráfico de obras
             </a>
           </div>
-
           <!-- ÁREA DO USUÁRIO (NOME + SAIR) -->
           <div class="col-12 col-md-4 text-center text-md-end">
             <span id="nome-usuario" class="fw-bold me-2"></span>
@@ -90,6 +87,11 @@
               placeholder="Pesquisar artistas por nome..."
             />
           </div>
+        </div>
+        <div class="text-center mb-4">
+          <a href="favoritos.html" class="btn btn-outline-secondary">
+            Ver apenas meus favoritos
+          </a>
         </div>
 
         <div class="row" id="lista-artistas"></div>
