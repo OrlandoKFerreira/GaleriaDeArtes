@@ -33,3 +33,29 @@ A Galeria de Arte permite o gerenciamento e a visualização de artistas e suas 
 ---
 
 ## 📂 Estrutura do Projeto
+
+GaleriaDeArtes
+│
+│
+├── public
+│ └── assets
+│ ├── css
+│ │ └── style.css
+│ ├── html
+│ │ ├── cadastro.html
+│ │ ├── detalhes.html
+│ │ ├── favoritos.html
+│ │ ├── form_artista.html
+│ │ ├── form_obra.html
+│ │ ├── grafico.html
+│ │ └── index.html
+│ ├── img
+│ │ ├── artistas
+│ │ └── obras
+│ └── js
+│ └── app.js
+│
+├── .gitignore
+├── db.json
+├── package.json
+└── README.md
