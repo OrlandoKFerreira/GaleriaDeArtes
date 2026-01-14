@@ -119,11 +119,18 @@ footer {
   border-top: 1px solid #ccc;
 }
 .btn-favorito {
-  color: #ccc !important;
+  font-size: 32px !important; /* tamanho maior da estrela */
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
 }
 
 .btn-favorito.favorito {
-  color: gold !important;
+  color: gold;
+}
+
+.btn-favorito:not(.favorito) {
+  color: #bfbfbf;
 }
 
 /*RESPONSIVIDADE*/

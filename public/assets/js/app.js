@@ -6,12 +6,15 @@ const API_BASE = "http://localhost:3000";
 // =========================
 // FUNÇÕES DE AUTENTICAÇÃO
 // =========================
+// =========================
+// FUNÇÕES DE AUTENTICAÇÃO (AGORA COM sessionStorage)
+// =========================
 function salvarUsuarioLogado(usuario) {
-  localStorage.setItem("usuarioLogado", JSON.stringify(usuario));
+  sessionStorage.setItem("usuarioLogado", JSON.stringify(usuario));
 }
 
 function obterUsuarioLogado() {
-  const dados = localStorage.getItem("usuarioLogado");
+  const dados = sessionStorage.getItem("usuarioLogado");
   if (!dados) return null;
   try {
     return JSON.parse(dados);
@@ -21,7 +24,7 @@ function obterUsuarioLogado() {
 }
 
 function limparUsuarioLogado() {
-  localStorage.removeItem("usuarioLogado");
+  sessionStorage.removeItem("usuarioLogado");
 }
 
 function exigirLogin() {
@@ -77,7 +80,7 @@ function initLogin() {
         id: usuario.id,
         nome: usuario.nome,
         email: usuario.email,
-        admin: usuario.admin, // vem do JSON (true ou false)
+        admin: usuario.admin,
       });
 
       window.location.href = "index.html";
@@ -117,7 +120,6 @@ function initCadastro() {
       }
 
       const novoUsuario = {
-        // se crypto.randomUUID existir, usa; senão usa timestamp
         id: window.crypto?.randomUUID
           ? crypto.randomUUID()
           : String(Date.now()),
@@ -125,7 +127,7 @@ function initCadastro() {
         email,
         login,
         senha,
-        admin: false, // cadastros comuns não são admin
+        admin: false,
       };
 
       const resp = await fetch(`${API_BASE}/usuarios`, {
@@ -289,9 +291,18 @@ function carregarHome() {
       if (campoPesquisa) {
         campoPesquisa.addEventListener("input", () => {
           const termo = campoPesquisa.value.toLowerCase();
-          const filtrados = todos.filter((artista) =>
-            artista.nome.toLowerCase().includes(termo)
-          );
+          const filtrados = todos.filter((artista) => {
+            const nome = artista.nome.toLowerCase();
+            const desc = (artista.descricao || "").toLowerCase();
+            const bio = (artista.biografia || "").toLowerCase();
+
+            return (
+              nome.includes(termo) ||
+              desc.includes(termo) ||
+              bio.includes(termo)
+            );
+          });
+
           renderizarLista(filtrados);
         });
       }
@@ -408,49 +419,67 @@ function carregarDetalhes() {
       return response.json();
     })
     .then((artista) => {
+      // verifica se este artista já é favorito
+      const favIds = getFavoritos().map((x) => String(x));
+      const isFavorito = favIds.includes(String(artista.id));
+      const classeFavorito = isFavorito ? "favorito" : "";
+
       container.innerHTML = `
-        <div class="card mb-4 shadow-sm">
-          <img src="${artista.imagem_principal}" class="card-img-top" alt="${
+    <div class="card mb-4 shadow-sm">
+      <img src="${artista.imagem_principal}" class="card-img-top" alt="${
         artista.nome
       }">
-          <div class="card-body">
-            <h2 class="h3">${artista.nome}</h2>
-            <p class="mb-1"><strong>País:</strong> ${artista.pais || "-"}</p>
-            <p class="mb-3">${artista.biografia || ""}</p>
-            <a href="index.html" class="btn btn-outline-secondary btn-sm">⬅ Voltar</a>
-            <a href="form_artista.html?id=${
-              artista.id
-            }" class="btn btn-warning btn-sm ms-2">Editar artista</a>
-            <a href="form_obra.html?artistaId=${
-              artista.id
-            }" class="btn btn-success btn-sm ms-2">Adicionar obra</a>
-          </div>
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h2 class="h3 mb-0">${artista.nome}</h2>
+          <button
+            class="btn-favorito ${classeFavorito}"
+            data-id="${artista.id}"
+            style="background: none; border: none; font-size: 26px;"
+            title="Marcar como favorito"
+          >
+            ★
+          </button>
         </div>
 
-        <h3 class="h4 mb-3">Obras de ${artista.nome}</h3>
-        <div class="row">
-          ${
-            artista.obras && artista.obras.length
-              ? artista.obras
-                  .map(
-                    (obra) => `
-                <div class="col-12 col-sm-6 col-md-4 mb-4">
-                  <div class="card h-100">
-                    <img src="${obra.imagem}" class="card-img-top" alt="${obra.titulo}">
-                    <div class="card-body">
-                      <h5 class="card-title">${obra.titulo}</h5>
-                      <p class="card-text">${obra.descricao}</p>
-                    </div>
-                  </div>
-                </div>
-              `
-                  )
-                  .join("")
-              : `<div class="col-12"><div class="alert alert-info">Este artista ainda não possui obras cadastradas.</div></div>`
-          }
-        </div>
-      `;
+        <p class="mb-1"><strong>País:</strong> ${artista.pais || "-"}</p>
+        <p class="mb-3">${artista.biografia || ""}</p>
+
+        <a href="index.html" class="btn btn-outline-secondary btn-sm">⬅ Voltar</a>
+        <a href="form_artista.html?id=${
+          artista.id
+        }" class="btn btn-warning btn-sm ms-2">Editar artista</a>
+        <a href="form_obra.html?artistaId=${
+          artista.id
+        }" class="btn btn-success btn-sm ms-2">Adicionar obra</a>
+      </div>
+    </div>
+
+    <h3 class="h4 mb-3">Obras de ${artista.nome}</h3>
+    <div class="row">
+      ${
+        artista.obras && artista.obras.length
+          ? artista.obras
+              .map(
+                (obra) => `
+          <div class="col-12 col-sm-6 col-md-4 mb-4">
+            <div class="card h-100">
+              <img src="${obra.imagem}" class="card-img-top" alt="${obra.titulo}">
+              <div class="card-body">
+                <h5 class="card-title">${obra.titulo}</h5>
+                <p class="card-text">${obra.descricao}</p>
+              </div>
+            </div>
+          </div>
+        `
+              )
+              .join("")
+          : `<div class="col-12"><div class="alert alert-info">Este artista ainda não possui obras cadastradas.</div></div>`
+      }
+    </div>
+  `;
     })
+
     .catch((error) => {
       console.error("Erro ao carregar os detalhes do artista:", error);
       container.innerHTML = `<div class="alert alert-warning">Erro ao carregar dados do artista. Tente novamente mais tarde.</div>`;
@@ -701,7 +730,7 @@ function getQueryParam(nome) {
 document.addEventListener("DOMContentLoaded", () => {
   const pageId = document.body.id;
 
-  // protege páginas (menos login/cadastro se você já tiver)
+  // protege páginas (menos login/cadastro)
   exigirLogin();
 
   // Mostrar nome do usuário logado no header (se existir)
@@ -721,15 +750,15 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // LOGIN
+  // LOGIN ============================
   if (pageId === "login") {
     initLogin();
     return;
   }
 
-  // (se tiver CADASTRO)
+  // CADASTRO =========================
   if (pageId === "cadastro") {
-    initCadastro(); // opcional, se você já criou essa função
+    initCadastro();
     return;
   }
 
@@ -755,18 +784,19 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
-        // FAVORITO (estrela)
+        // FAVORITO (estrela na home)
         const favBtn = e.target.closest(".btn-favorito");
         if (favBtn) {
           const id = favBtn.dataset.id;
           alternarFavorito(id);
-          // Só alterna a classe, o CSS cuida da cor
           favBtn.classList.toggle("favorito");
           return;
         }
       });
     }
   }
+
+  // FAVORITOS  =======================
   if (pageId === "favoritos") {
     carregarFavoritos();
 
@@ -785,21 +815,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // FAVORITOS  =======================
-  if (pageId === "favoritos") {
-    carregarFavoritos();
+  // DETALHES  =======================
+  if (pageId === "detalhes") {
+    carregarDetalhes();
 
-    const listaFavEl = document.getElementById("lista-favoritos");
-    if (listaFavEl) {
-      listaFavEl.addEventListener("click", (e) => {
-        // Clique na estrela na página de favoritos
+    const conteudo = document.getElementById("conteudo-artista");
+    if (conteudo) {
+      conteudo.addEventListener("click", (e) => {
         const favBtn = e.target.closest(".btn-favorito");
         if (favBtn) {
           const id = favBtn.dataset.id;
           alternarFavorito(id);
-          // Aqui faz sentido recarregar a lista,
-          // porque o artista deve sumir dos favoritos
-          carregarFavoritos();
+          favBtn.classList.toggle("favorito");
           return;
         }
       });
@@ -807,7 +834,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // OUTRAS PÁGINAS ===================
-  if (pageId === "detalhes") carregarDetalhes();
   if (pageId === "form-artista") initFormArtista();
   if (pageId === "form-obra") initFormObra();
   if (pageId === "grafico") carregarGraficoObras();
