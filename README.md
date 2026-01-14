@@ -1,26 +1,35 @@
-# Trabalho Prático 07 - Semanas 13 e 14
+# 🎨 Galeria de Arte
 
-A partir dos dados cadastrados na etapa anterior, vamos trabalhar formas de apresentação que representem de forma clara e interativa as informações do seu projeto. Você poderá usar gráficos (barra, linha, pizza), mapas, calendários ou outras formas de visualização. Seu desafio é entregar uma página Web que organize, processe e exiba os dados de forma compreensível e esteticamente agradável.
+Aplicação web desenvolvida como trabalho acadêmico para a disciplina de Engenharia de Software, com o objetivo de aplicar conceitos de desenvolvimento frontend, consumo de API REST simulada e controle de acesso de usuários.
 
-Com base nos tipos de projetos escohidos, você deve propor **visualizações que estimulem a interpretação, agrupamento e exibição criativa dos dados**, trabalhando tanto a lógica quanto o design da aplicação.
+A Galeria de Arte permite o gerenciamento e a visualização de artistas e suas obras, oferecendo funcionalidades como login e cadastro de usuários, sistema de favoritos, pesquisa dinâmica e visualização gráfica de dados.
 
-Sugerimos o uso das seguintes ferramentas acessíveis: [FullCalendar](https://fullcalendar.io/), [Chart.js](https://www.chartjs.org/), [Mapbox](https://docs.mapbox.com/api/), para citar algumas.
+---
 
-## Informações do trabalho
+## 📌 Funcionalidades
 
-- Nome: Orlando Kelvin Ferreira
-- Matricula: 599134
-- Proposta de projeto escolhida: Obras de arte
-- Breve descrição sobre seu projeto: Um site para cadastrar artistas e obras referente ao artista
+- Autenticação de usuários (login e cadastro)
+- Controle de acesso às páginas da aplicação
+- Listagem, cadastro, edição e exclusão de artistas
+- Cadastro e visualização de obras por artista
+- Sistema de favoritos com persistência no navegador
+- Página dedicada para artistas favoritos
+- Pesquisa dinâmica por nome de artistas
+- Carrossel de artistas em destaque
+- Gráfico de quantidade de obras por artista
+- Interface responsiva
 
-**Print da tela com a implementação**
+---
 
-<< Coloque aqui uma breve explicação da implementação feita nessa etapa>>
+## 🛠️ Tecnologias Utilizadas
 
-    Nesta etapa foi criada uma página específica para a apresentação dinâmica dos dados usando chart. Os artistas cadastrados pelo sistema de CRUD da etapa anterior são carregados e exibidos em um gráfico de pizza que mostra a quantidade de obras por artista.
+- HTML5
+- CSS3
+- JavaScript (Vanilla JS)
+- Bootstrap 5
+- JSON Server
+- Chart.js
 
-<< COLOQUE A IMAGEM TELA 1 AQUI >>
-![grafico](/public/assets/img/grafico.png)
+---
 
-<< COLOQUE A IMAGEM TELA 2 AQUI >>
-![grafico](/public/assets/img/paginaartista.png)
+## 📂 Estrutura do Projeto
