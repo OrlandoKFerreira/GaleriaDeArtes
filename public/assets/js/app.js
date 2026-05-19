@@ -3,12 +3,6 @@
 // =========================
 const API_BASE = "http://localhost:3000";
 
-// =========================
-// FUNÇÕES DE AUTENTICAÇÃO
-// =========================
-// =========================
-// FUNÇÕES DE AUTENTICAÇÃO (AGORA COM sessionStorage)
-// =========================
 function salvarUsuarioLogado(usuario) {
   sessionStorage.setItem("usuarioLogado", JSON.stringify(usuario));
 }
@@ -29,7 +23,7 @@ function limparUsuarioLogado() {
 
 function exigirLogin() {
   const pageId = document.body.id;
-  // páginas livres: login e cadastro
+
   if (pageId === "login" || pageId === "cadastro") return;
 
   const usuario = obterUsuarioLogado();
